@@ -20,10 +20,8 @@ jobs:
           aws-region: us-east-1
 
       - name: Login to Amazon ECR Public
-        id: login-ecr-public
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-        with:
-          registry-type: public
 
       - name: Build, tag, and push docker image to Amazon ECR Public
         env:
