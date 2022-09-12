@@ -1,0 +1,5 @@
+*.log
+Makefile
+app.env
+db/sqlc/app.env
+.idea
