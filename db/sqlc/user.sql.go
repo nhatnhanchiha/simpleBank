@@ -7,12 +7,11 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one
-insert into "users" (
-    username, hashed_password, full_name, email
-)
+insert into "users" (username, hashed_password, full_name, email)
 values ($1, $2, $3, $4)
 returning username, hashed_password, full_name, email, password_changed_at, created_at
 `
@@ -46,11 +45,47 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 const getUser = `-- name: GetUser :one
 select username, hashed_password, full_name, email, password_changed_at, created_at
 from "users"
-where username = $1 limit 1
+where username = $1
+limit 1
 `
 
 func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUser, username)
+	var i User
+	err := row.Scan(
+		&i.Username,
+		&i.HashedPassword,
+		&i.FullName,
+		&i.Email,
+		&i.PasswordChangedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateUser = `-- name: UpdateUser :one
+update "users"
+set hashed_password = coalesce($1, hashed_password),
+    full_name       = coalesce($2, full_name),
+    email           = coalesce($3, email)
+where username = $4
+returning username, hashed_password, full_name, email, password_changed_at, created_at
+`
+
+type UpdateUserParams struct {
+	HashedPassword sql.NullString `json:"hashed_password"`
+	FullName       sql.NullString `json:"full_name"`
+	Email          sql.NullString `json:"email"`
+	Username       string         `json:"username"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUser,
+		arg.HashedPassword,
+		arg.FullName,
+		arg.Email,
+		arg.Username,
+	)
 	var i User
 	err := row.Scan(
 		&i.Username,
